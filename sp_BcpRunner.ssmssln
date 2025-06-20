@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# SQL Server Management Studio Solution File, Format Version 19.00
+VisualStudioVersion = 15.0.28307.421
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{4F2E2C19-372F-40D8-9FA7-9D2138C6997A}") = "sp_BcpRunner", "sp_BcpRunner.ssmssqlproj", "{91EBD1EA-DE58-4EDE-9903-9141F56D1E01}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Default|Default = Default|Default
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{91EBD1EA-DE58-4EDE-9903-9141F56D1E01}.Default|Default.ActiveCfg = Default
+		{A7E7C077-09D1-44F9-AAF7-1FE08238F698}.Default|Default.ActiveCfg = Default
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {2E91661C-DE1A-42F4-986C-71186541EEB9}
+	EndGlobalSection
+EndGlobal
