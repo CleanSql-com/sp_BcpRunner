@@ -24,8 +24,8 @@ ALTER PROCEDURE [dbo].[sp_BcpRunner]
 /*              output .csv files using @DelimBcpOutputField VARCHAR(3)                                                 */
 /*              For each @SchemaNames/@TableNames the sp will create an xml FormatFile.Schema.TableName                 */ 
 /*              additionally it will create 2 PowerShell scripts:                                                       */
-/*              BcpExport.ps1 - run it first to generate csv files from Source (@InstanceNameSrc/@DbNameSrc)            */
-/*              BcpImport.ps1 - run it next to import csv files generated above into @InstanceNameTgt/@DbNameTgt        */
+/*              BcpExport.ps1 - run it first, to generate csv files from Source (@InstanceNameSrc/@DbNameSrc)            */
+/*              BcpImport.ps1 - run it next, to import csv files generated above into @InstanceNameTgt/@DbNameTgt        */
 /*              Running BcpExport.ps1 will produce Schema.TableName.csv file per each input TableName                   */
 /*              Running BcpImport.ps1 will import data from Schema.TableName.csv into Target Instance/Db                */
 /*              Both ps1 scripts will produce parallel multithreaded asynchronous Bcp runs. To create separate ps1      */ 
@@ -130,7 +130,7 @@ EXEC [dbo].[sp_BcpRunner]
       , @DelimSrcObjList                    CHAR(1)       = ','   /* character used to delimit the list of Schema/Table names, supplied to @SchemaNames/@TableNames params above */
       , @WildcardChar                       CHAR(1)       = '*'   /* character used as a wildcard in the parameters above, if not used leave as NULL */
       , @ExportAllTablesPerDB               BIT           = 0     /* Set @ExportAllTablesPerDB to = 1 ONLY if you want to ignore the @SchemaNames/@TableNames specified above and export ALL TABLES IN THE ENTIRE DB */
-      , @ExportComputedCols                 BIT           = 0     /* assuming computed cols on Target are defined identically as on Source (savees space in .csv), change to 1 if you want to export/import them */
+      , @ExportComputedCols                 BIT           = 0     /* assuming computed cols on Target are defined identically as on Source (saves space in .csv), change to 1 if you want to export/import them */
       , @ExportIdentityCols                 BIT           = 1
       , @ExportColumnHeaders                BIT           = 0     /* set = 1 only if you want to see the Column Names in the csv files, not critical for Import to work, will slow down Export/Import with larger files */                                                                                              
                                                                   

@@ -1,6 +1,6 @@
 /* 
     Export and import all tables:
-    1.  From Schemas: 'HumanResources, Production, Purchasing, Sales'
+    1. From Schemas: 'HumanResources, Production, Purchasing, Sales'
     2. Matching Table Name patterns: 'Product*, *Address, *Tax*, Employee*, Work*'
     Except for:
     1. Any table name that ends with 'History' or 'Model'
@@ -9,6 +9,7 @@
     4. Any Identity Columns
     Columns inside all output csv files will be delimited with: '|||'
 */
+
 USE [AdventureWorks2019]
 GO
 
@@ -16,7 +17,7 @@ DECLARE
 
   @InstanceNameSrc                    NVARCHAR(128)     = N'Inst1.docker.internal'
 , @InstanceNameTgt                    NVARCHAR(128)     = N'Inst2.docker.internal'
-, @SqlAuthentication                  BIT               = 1       
+, @SqlAuthentication                  BIT               = 1
 , @SqlUserNameSrc                     SYSNAME           = 'sa'
 , @SqlPasswordSrc                     NVARCHAR(128)     = N'Password1234$'
 , @SqlUserNameTgt                     SYSNAME           = 'sa'
@@ -24,7 +25,7 @@ DECLARE
 , @DbNameSrc                          SYSNAME           = N'AdventureWorks2019'
 , @DbNameTgt                          SYSNAME           = N'AdventureWorks2019_Target'
 , @OutputDirectoryPsXml               NVARCHAR(MAX)     = N'C:\MSSQL\Backup\BCP\'
-, @OutputDirectoryCsv                 NVARCHAR(MAX)     = N'C:\DOCKER_SHARE\Windows\BackupCommon\BCP\'                                                        
+, @OutputDirectoryCsv                 NVARCHAR(MAX)     = N'C:\DOCKER_SHARE\Windows\BackupCommon\BCP\'
 , @SchemaNames                        NVARCHAR(MAX)     = N'HumanResources, Production, Purchasing, Sales'
 , @TableNames                         NVARCHAR(MAX)     = N'Product*, *Address, *Tax*, Employee*, Work*'
 , @SchemaNamesExpt                    NVARCHAR(MAX)     = N'*'
@@ -54,4 +55,4 @@ EXEC [dbo].[sp_BcpRunner]
                                  , @DataTypesExpt           = @DataTypesExpt
                                  , @DelimBcpOutputField     = @DelimBcpOutputField
                                  , @ExportIdentityCols      = @ExportIdentityCols
-                                 
+
