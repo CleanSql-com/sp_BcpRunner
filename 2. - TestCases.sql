@@ -1,3 +1,10 @@
+EXEC sp_configure 'Show Advanced Options', 1
+RECONFIGURE
+
+
+EXEC sp_configure 'Ole Automation Procedures', 1
+RECONFIGURE
+
 /* 
     Export and import all tables:
     1. From Schemas: 'HumanResources, Production, Purchasing, Sales'
@@ -25,7 +32,7 @@ DECLARE
 , @DbNameSrc                          SYSNAME           = N'AdventureWorks2019'
 , @DbNameTgt                          SYSNAME           = N'AdventureWorks2019_Target'
 , @OutputDirectoryPsXml               NVARCHAR(MAX)     = N'C:\MSSQL\Backup\BCP\'
-, @OutputDirectoryCsv                 NVARCHAR(MAX)     = N'C:\DOCKER_SHARE\Windows\BackupCommon\BCP\'
+, @OutputDirectoryCsv                 NVARCHAR(MAX)     = N'D:\DOCKER_SHARE\Windows\BackupCommon\BCP\'
 , @SchemaNames                        NVARCHAR(MAX)     = N'HumanResources, Production, Purchasing, Sales'
 , @TableNames                         NVARCHAR(MAX)     = N'Product*, *Address, *Tax*, Employee*, Work*'
 , @SchemaNamesExpt                    NVARCHAR(MAX)     = N'*'
@@ -56,3 +63,58 @@ EXEC [dbo].[sp_BcpRunner]
                                  , @DelimBcpOutputField     = @DelimBcpOutputField
                                  , @ExportIdentityCols      = @ExportIdentityCols
 
+GO
+
+
+/* 
+    Export and import table [AdventureWorksDW2019].[dbo].[FactResellerSales]:
+    Columns inside all output csv files will be delimited with: '^|^'
+*/
+
+
+USE [AdventureWorksDW2019]
+GO
+
+DECLARE 
+
+  @InstanceNameSrc                    NVARCHAR(128)     = N'Inst1.docker.internal'
+, @InstanceNameTgt                    NVARCHAR(128)     = N'Inst2.docker.internal'
+, @SqlAuthentication                  BIT               = 1
+, @SqlUserNameSrc                     SYSNAME           = 'sa'
+, @SqlPasswordSrc                     NVARCHAR(128)     = N'Password1234$'
+, @SqlUserNameTgt                     SYSNAME           = 'sa'
+, @SqlPasswordTgt                     NVARCHAR(128)     = N'Password1234$'
+, @DbNameSrc                          SYSNAME           = N'AdventureWorksDW2019'
+, @DbNameTgt                          SYSNAME           = N'AdventureWorksDW2019_Target'
+, @OutputDirectoryPsXml               NVARCHAR(MAX)     = N'C:\MSSQL\Backup\BCP\'
+, @OutputDirectoryCsv                 NVARCHAR(MAX)     = N'D:\DOCKER_SHARE\Windows\BackupCommon\BCP\'
+, @SchemaNames                        NVARCHAR(MAX)     = N'dbo'
+, @TableNames                         NVARCHAR(MAX)     = N'FactResellerSales'
+, @SchemaNamesExpt                    NVARCHAR(MAX)     = NULL
+, @TableNamesExpt                     NVARCHAR(MAX)     = NULL
+, @ColumnNamesExpt                    NVARCHAR(MAX)     = NULL --N'UnitPriceDiscountPct, DiscountAmount'
+, @DataTypesExpt                      NVARCHAR(MAX)     = NULL
+, @DelimBcpOutputField                VARCHAR(3)        = '^|^'
+, @ExportIdentityCols                 BIT               = 0
+       
+EXEC [dbo].[sp_BcpRunner]
+                                   @InstanceNameSrc         = @InstanceNameSrc     
+                                 , @InstanceNameTgt         = @InstanceNameTgt     
+                                 , @SqlAuthentication       = @SqlAuthentication   
+                                 , @SqlUserNameSrc          = @SqlUserNameSrc      
+                                 , @SqlPasswordSrc          = @SqlPasswordSrc      
+                                 , @SqlUserNameTgt          = @SqlUserNameTgt      
+                                 , @SqlPasswordTgt          = @SqlPasswordTgt      
+                                 , @DbNameSrc               = @DbNameSrc           
+                                 , @DbNameTgt               = @DbNameTgt           
+                                 , @OutputDirectoryPsXml    = @OutputDirectoryPsXml
+                                 , @OutputDirectoryCsv      = @OutputDirectoryCsv  
+                                 , @SchemaNames             = @SchemaNames         
+                                 , @TableNames              = @TableNames          
+                                 , @SchemaNamesExpt         = @SchemaNamesExpt     
+                                 , @TableNamesExpt          = @TableNamesExpt      
+                                 , @ColumnNamesExpt         = @ColumnNamesExpt     
+                                 , @DataTypesExpt           = @DataTypesExpt
+                                 , @DelimBcpOutputField     = @DelimBcpOutputField
+                                 , @ExportIdentityCols      = @ExportIdentityCols
+GO

@@ -22,7 +22,22 @@ BEGIN
 END
 
 DBCC CLONEDATABASE ( [AdventureWorks2019], [AdventureWorks2019_Target] ) WITH NO_STATISTICS, NO_QUERYSTORE;
+GO
 
+
+USE [master];
+GO
+
+IF EXISTS (SELECT 1 FROM sys.databases WHERE [name] = 'ColumnStoreMigrationDemo_Tgt')
+BEGIN
+    ALTER DATABASE [ColumnStoreMigrationDemo_Tgt] SET  SINGLE_USER WITH ROLLBACK IMMEDIATE
+    DROP DATABASE [ColumnStoreMigrationDemo_Tgt]
+END
+
+DBCC CLONEDATABASE ( [ColumnStoreMigrationDemo_Src], [ColumnStoreMigrationDemo_Tgt] ) WITH NO_STATISTICS, NO_QUERYSTORE;
+ALTER DATABASE [ColumnStoreMigrationDemo_Tgt] SET SINGLE_USER WITH ROLLBACK IMMEDIATE
+ALTER DATABASE [ColumnStoreMigrationDemo_Tgt] SET READ_WRITE
+ALTER DATABASE [ColumnStoreMigrationDemo_Tgt] SET MULTI_USER
 
 /*
 USE [AdventureWorks2019_Clone]

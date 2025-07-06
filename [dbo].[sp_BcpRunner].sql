@@ -36,6 +36,8 @@ ALTER PROCEDURE [dbo].[sp_BcpRunner]
 /* Date:       Version:  Change:                                                                                        */
 /* -------------------------------------------------------------------------------------------------------------------- */
 /* 2025-06-20  1.00      Created                                                                                        */
+/* 2025-07-05  1.01      Added missing [#DataTypeMapping] float -> sqlflt8                                              */
+/*                       Added thousand-comma-formatting to Job-Result numbers of PowerShell output                     */
 /* -------------------------------------------------------------------------------------------------------------------- */
 /* ==================================================================================================================== */
 /* Example use: 
@@ -97,6 +99,55 @@ EXEC [dbo].[sp_BcpRunner]
                                  , @ExportIdentityCols      = @ExportIdentityCols
 
 
+    Export and import table [AdventureWorksDW2019].[dbo].[FactResellerSales]:
+    Columns inside output csv file will be delimited with: '^|^'
+
+USE [AdventureWorksDW2019]
+GO
+
+DECLARE 
+
+  @InstanceNameSrc                    NVARCHAR(128)     = N'Inst1.docker.internal'
+, @InstanceNameTgt                    NVARCHAR(128)     = N'Inst2.docker.internal'
+, @SqlAuthentication                  BIT               = 1
+, @SqlUserNameSrc                     SYSNAME           = 'sa'
+, @SqlPasswordSrc                     NVARCHAR(128)     = N'Password1234$'
+, @SqlUserNameTgt                     SYSNAME           = 'sa'
+, @SqlPasswordTgt                     NVARCHAR(128)     = N'Password1234$'
+, @DbNameSrc                          SYSNAME           = N'AdventureWorksDW2019'
+, @DbNameTgt                          SYSNAME           = N'AdventureWorksDW2019_Target'
+, @OutputDirectoryPsXml               NVARCHAR(MAX)     = N'C:\MSSQL\Backup\BCP\'
+, @OutputDirectoryCsv                 NVARCHAR(MAX)     = N'D:\DOCKER_SHARE\Windows\BackupCommon\BCP\'
+, @SchemaNames                        NVARCHAR(MAX)     = N'dbo'
+, @TableNames                         NVARCHAR(MAX)     = N'FactResellerSales'
+, @SchemaNamesExpt                    NVARCHAR(MAX)     = NULL
+, @TableNamesExpt                     NVARCHAR(MAX)     = NULL
+, @ColumnNamesExpt                    NVARCHAR(MAX)     = NULL
+, @DataTypesExpt                      NVARCHAR(MAX)     = NULL
+, @DelimBcpOutputField                VARCHAR(3)        = '^|^'
+, @ExportIdentityCols                 BIT               = 0
+       
+EXEC [dbo].[sp_BcpRunner]
+                                   @InstanceNameSrc         = @InstanceNameSrc     
+                                 , @InstanceNameTgt         = @InstanceNameTgt     
+                                 , @SqlAuthentication       = @SqlAuthentication   
+                                 , @SqlUserNameSrc          = @SqlUserNameSrc      
+                                 , @SqlPasswordSrc          = @SqlPasswordSrc      
+                                 , @SqlUserNameTgt          = @SqlUserNameTgt      
+                                 , @SqlPasswordTgt          = @SqlPasswordTgt      
+                                 , @DbNameSrc               = @DbNameSrc           
+                                 , @DbNameTgt               = @DbNameTgt           
+                                 , @OutputDirectoryPsXml    = @OutputDirectoryPsXml
+                                 , @OutputDirectoryCsv      = @OutputDirectoryCsv  
+                                 , @SchemaNames             = @SchemaNames         
+                                 , @TableNames              = @TableNames          
+                                 , @SchemaNamesExpt         = @SchemaNamesExpt     
+                                 , @TableNamesExpt          = @TableNamesExpt      
+                                 , @ColumnNamesExpt         = @ColumnNamesExpt     
+                                 , @DataTypesExpt           = @DataTypesExpt
+                                 , @DelimBcpOutputField     = @DelimBcpOutputField
+                                 , @ExportIdentityCols      = @ExportIdentityCols
+
 */
 /*THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO    */
 /*THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE      */
@@ -155,7 +206,7 @@ DECLARE
 /* ==================================================================================================================== */
 
   /* Internal parameters: */
-    @SpCurrentVersion                CHAR(5) = '1.00'
+    @SpCurrentVersion      CHAR(5) = '1.01'
   , @ObjectId              INT
   , @SchemaName            SYSNAME
   , @TableName             SYSNAME
@@ -638,6 +689,7 @@ SET [FmtXsiType] =
            WHEN LOWER('varbinary')          THEN 'sqlvarybin'
            WHEN LOWER('varchar')            THEN 'sqlvarychar'
            WHEN LOWER('xml')                THEN 'sqlnvarchar'      -- * /* bcp format null -x -f: sqlnvarchar (?) */
+           WHEN LOWER('float')              THEN 'sqlflt8'
            ELSE CONCAT('sql', [SqlDataType])
        END,
     [FmtMaxLength] = 
@@ -1073,21 +1125,23 @@ VALUES
 , (@ObjectId, 		 '        $output = & bcp.exe @args 2>&1 | Out-String')
 , (@ObjectId, 		 '        $endTime = Get-Date')
 , (@ObjectId, 		 '        $rowsCopied = if ($output -match "(\d+)\s+rows copied") { $matches[1] } else { "?" }')
-, (@ObjectId, 		 '        $duration   = if ($output -match "Clock Time.*?:\s+(.+?)\s") { $matches[1] + " ms" } else { "?" }')
+, (@ObjectId, 		 '        $duration   = if ($output -match "Clock Time.*?:\s+(.+?)\s") { $matches[1] } else { "?" }')
 , (@ObjectId, 		 '        $speed      = if ($output -match ":\s+\((.*?)\s+rows per sec\.\)") { $matches[1] } else { "?" }')
 , (@ObjectId, 		 '        $errorLines = $output -split "`r?`n" | Where-Object {')
 , (@ObjectId, 		 '            ($_ -match "(?i)\b(error|failed)\b") -and')
 , (@ObjectId, 		 '            ($_ -notmatch "BCP import with a format file will convert empty strings in delimited columns to NULL")')
 , (@ObjectId, 		 '        }')
 , (@ObjectId, 		 '        $errorText = if ($errorLines) { $errorLines -join "`n" } else { "None" }')
-, (@ObjectId, 		 '          ')
-, (@ObjectId, 		 '        [pscustomobject]@{')
-, (@ObjectId, 		 '            Table      = $table.TableName')
-, (@ObjectId, 		 '            RowsCopied = $rowsCopied')
-, (@ObjectId, 		 '            Duration   = $duration')
-, (@ObjectId, 		 '            Speed      = $speed')
-, (@ObjectId, 		 '            StartTime  = $startTime')
-, (@ObjectId, 		 '            EndTime    = $endTime')
+, (@ObjectId,        '        $durationFormatted   = if ($duration) { "{0:N0}" -f [int]$duration } else { "?" }')
+, (@ObjectId,        '        $rowsCopiedFormatted = if ($rowsCopied) { "{0:N0}" -f [int]$rowsCopied } else { "?" }')
+, (@ObjectId,        '        $speedFormatted      = if ($speed) { "{0:N0}" -f [int]$speed } else { "?" }')
+, (@ObjectId,        '        [pscustomobject]@{')
+, (@ObjectId,        '            Table      = $table.TableName')
+, (@ObjectId,        '            StartTime  = $startTime')
+, (@ObjectId,        '            EndTime    = $endTime')
+, (@ObjectId,        '            Duration   = $durationFormatted')
+, (@ObjectId,        '            RowsCopied = $rowsCopiedFormatted')
+, (@ObjectId,        '            Speed      = $speedFormatted')
 , (@ObjectId, 		 '            Error      = $errorText')
 , (@ObjectId, 		 '        }')
 , (@ObjectId, 		 '    } -ArgumentList $table, $outputDir, $server, $username, $password')
@@ -1109,7 +1163,7 @@ VALUES
 , (@ObjectId, 		 '    Start-Sleep -Milliseconds 250')
 , (@ObjectId, 		 '}')
 , (@ObjectId, 		 'Write-Host "`n ========================================== Bcp-Export Job Results: ================================================================= "')
-, (@ObjectId, 		 '$results | Select-Object Table, StartTime, EndTime, Duration, RowsCopied, @{Name = "Speed [rows/sec]"; Expression = { $_.Speed }}, Error | Format-Table -AutoSize')
+, (@ObjectId, 		 '$results | Select-Object Table, StartTime, EndTime, @{Name = "Duration [ms]"; Expression = { $_.Duration }}, RowsCopied, @{Name = "Speed [rows/s]"; Expression = { $_.Speed }}, Error | Format-Table -AutoSize')
 
 INSERT INTO [#BcpInPwrShlFooter] ([ObjectId], [LineOfCode])
 VALUES 
@@ -1175,7 +1229,7 @@ VALUES
 , (@ObjectId,        '    $output = & bcp.exe @args 2>&1 | Out-String')
 , (@ObjectId,        '    $endTime = Get-Date')
 , (@ObjectId,        '    $rowsCopied = if ($output -match "(\d+)\s+rows copied") { $matches[1] } else { "?" }')
-, (@ObjectId,        '    $duration   = if ($output -match "Clock Time.*?:\s+(.+?)\s") { $matches[1] + " ms" } else { "?" }')
+, (@ObjectId,        '    $duration   = if ($output -match "Clock Time.*?:\s+(.+?)\s") { $matches[1] } else { "?" }')
 , (@ObjectId,        '    $speed      = if ($output -match ":\s+\((.*?)\s+rows per sec\.\)") { $matches[1] } else { "?" }')
 , (@ObjectId,        '    $errorLines = $output -split "`r?`n" | Where-Object {')
 , (@ObjectId,        '        ($_ -match "(?i)\b(error|failed)\b") -and')
@@ -1191,15 +1245,17 @@ VALUES
 , (@ObjectId,       '	          $errorText += "`nWarning: Failed to drop view $($table["ViewName"])"')
 , (@ObjectId,       '	      }')
 , (@ObjectId,       '	  }')
-                     
+, (@ObjectId,        '    $durationFormatted   = if ($duration) { "{0:N0}" -f [int]$duration } else { "?" }')
+, (@ObjectId,        '    $rowsCopiedFormatted = if ($rowsCopied) { "{0:N0}" -f [int]$rowsCopied } else { "?" }')
+, (@ObjectId,        '    $speedFormatted      = if ($speed) { "{0:N0}" -f [int]$speed } else { "?" }')
 , (@ObjectId,        '    [pscustomobject]@{')
-, (@ObjectId,        '        Table      = $table["TableName"]')
-, (@ObjectId,        '        RowsCopied = $rowsCopied')
-, (@ObjectId,        '        Duration   = $duration')
-, (@ObjectId,        '        Speed      = $speed')
+, (@ObjectId,        '        Table      = $table.TableName')
 , (@ObjectId,        '        StartTime  = $startTime')
 , (@ObjectId,        '        EndTime    = $endTime')
-, (@ObjectId,        '        Error      = $errorText')
+, (@ObjectId,        '        Duration   = $durationFormatted')
+, (@ObjectId,        '        RowsCopied = $rowsCopiedFormatted')
+, (@ObjectId,        '        Speed      = $speedFormatted')
+, (@ObjectId, 		 '        Error      = $errorText')
 , (@ObjectId,        '    }')
 , (@ObjectId,        '')
 , (@ObjectId,        '} -ArgumentList $table, $inputDir, $server, $username, $password, $targetDb')
@@ -1222,7 +1278,7 @@ VALUES
 , (@ObjectId,        '    Start-Sleep -Milliseconds 250')
 , (@ObjectId,        '}')
 , (@ObjectId,        'Write-Host "`n ========================================== Bcp-Import Job Results: ================================================================= "')
-, (@ObjectId,        '$results | Select-Object Table, StartTime, EndTime, Duration, RowsCopied, @{Name = "Speed [rows/sec]"; Expression = { $_.Speed }}, Error | Format-Table -AutoSize')
+, (@ObjectId,        '$results | Select-Object Table, StartTime, EndTime, @{Name = "Duration [ms]"; Expression = { $_.Duration }}, RowsCopied, @{Name = "Speed [rows/s]"; Expression = { $_.Speed }}, Error | Format-Table -AutoSize')
 
 IF (@ExportColumnHeaders = 1)
 BEGIN
