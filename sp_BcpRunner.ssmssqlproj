@@ -4,7 +4,7 @@
     <LogicalFolder Name="Connections" Type="2" Sorted="true">
       <Items>
         <ConnectionNode Name="Inst1.docker.internal,1433:sa">
-          <Created>2025-07-05T22:06:03.0887321+02:00</Created>
+          <Created>2025-12-07T13:14:51.1576876+01:00</Created>
           <Type>SQL</Type>
           <Server>Inst1.docker.internal,1433</Server>
           <UserName>sa</UserName>
@@ -17,22 +17,8 @@
           <ConnectionProtocol>NotSpecified</ConnectionProtocol>
           <ApplicationName>Microsoft SQL Server Management Studio - Query</ApplicationName>
         </ConnectionNode>
-        <ConnectionNode Name="Inst1.docker.internal:sa">
-          <Created>2025-06-20T17:01:58.9073966+02:00</Created>
-          <Type>SQL</Type>
-          <Server>Inst1.docker.internal</Server>
-          <UserName>sa</UserName>
-          <Authentication>SQL</Authentication>
-          <InitialDB>AdventureWorksDW2019</InitialDB>
-          <LoginTimeout>30</LoginTimeout>
-          <TrustServerCertificate>False</TrustServerCertificate>
-          <EncryptionOption>True</EncryptionOption>
-          <ExecutionTimeout>0</ExecutionTimeout>
-          <ConnectionProtocol>NotSpecified</ConnectionProtocol>
-          <ApplicationName>Microsoft SQL Server Management Studio - Query</ApplicationName>
-        </ConnectionNode>
         <ConnectionNode Name="Inst2.docker.internal,1433:sa">
-          <Created>2025-07-05T22:22:16.6873922+02:00</Created>
+          <Created>2025-12-07T13:15:21.0293124+01:00</Created>
           <Type>SQL</Type>
           <Server>Inst2.docker.internal,1433</Server>
           <UserName>sa</UserName>
@@ -45,27 +31,13 @@
           <ConnectionProtocol>NotSpecified</ConnectionProtocol>
           <ApplicationName>Microsoft SQL Server Management Studio - Query</ApplicationName>
         </ConnectionNode>
-        <ConnectionNode Name="Inst2.docker.internal:sa">
-          <Created>2025-06-20T18:04:21.1145055+02:00</Created>
-          <Type>SQL</Type>
-          <Server>Inst2.docker.internal</Server>
-          <UserName>sa</UserName>
-          <Authentication>SQL</Authentication>
-          <InitialDB>master</InitialDB>
-          <LoginTimeout>30</LoginTimeout>
-          <TrustServerCertificate>False</TrustServerCertificate>
-          <EncryptionOption>True</EncryptionOption>
-          <ExecutionTimeout>0</ExecutionTimeout>
-          <ConnectionProtocol>NotSpecified</ConnectionProtocol>
-          <ApplicationName>Microsoft SQL Server Management Studio - Query</ApplicationName>
-        </ConnectionNode>
       </Items>
     </LogicalFolder>
     <LogicalFolder Name="Queries" Type="0" Sorted="true">
       <Items>
         <FileNode Name="[dbo].[sp_BcpRunner].sql">
-          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:Inst2.docker.internal,1433:False:sa</AssociatedConnectionMoniker>
-          <AssociatedConnSrvName>Inst2.docker.internal,1433</AssociatedConnSrvName>
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:Inst1.docker.internal,1433:False:sa</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>Inst1.docker.internal,1433</AssociatedConnSrvName>
           <AssociatedConnUserName>sa</AssociatedConnUserName>
           <FullPath>[dbo].[sp_BcpRunner].sql</FullPath>
         </FileNode>
