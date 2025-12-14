@@ -332,6 +332,8 @@ DECLARE
   , @SnflImpFileNam        NVARCHAR(255) = 'SnowflakeImport.sql'
   , @OutputFileNameSnowSql NVARCHAR(128)
   , @newln                 CHAR(6)       = '''\n'''
+  , @BackSlsh              CHAR(1)       = CHAR(92)
+  , @FwdSlsh               CHAR(1)       = CHAR(47)
 
 
   /* Error handling varaibles: */
@@ -415,9 +417,9 @@ BEGIN
     GOTO ERROR
 END;
 
-IF (CHARINDEX('/', @DelimBcpOutputRow, 1) > 0) OR (CHARINDEX('\', @DelimBcpOutputRow, 1) > 0) 
+IF (CHARINDEX(@BackSlsh, @DelimBcpOutputRow, 1) > 0) OR (CHARINDEX(@FwdSlsh, @DelimBcpOutputRow, 1) > 0) 
 BEGIN
-    SET @ErrorMessage = N'Do not include ''/'' or ''\'' in your @DelimBcpOutputRow parameter, it will confuse a living shit out of bcp.exe';
+    SET @ErrorMessage = CONCAT(N'Do not include ', @BackSlsh, ' or ', @FwdSlsh, ' in your @DelimBcpOutputRow parameter, it will confuse a living shit out of bcp.exe');
     GOTO ERROR
 END;
 
@@ -1289,7 +1291,7 @@ BEGIN
     , (@ObjectId,        '     sch NVARCHAR(256);')
     , (@ObjectId,        '     tbl NVARCHAR(256);')
     , (@ObjectId,        '     put_commands NVARCHAR(4096) DEFAULT '''';')
-    , (@ObjectId, CONCAT('     file_path_prefix VARCHAR DEFAULT ''file://', REPLACE(@OutputDirectoryCsv, '\', '/'), ''';'))
+    , (@ObjectId, CONCAT('     file_path_prefix VARCHAR DEFAULT ''file://', REPLACE(@OutputDirectoryCsv, @BackSlsh, @FwdSlsh), ''';'))
     , (@ObjectId, CONCAT('     stage_name VARCHAR DEFAULT ''@', @DbNameTgt, '.', @SnflSchemaUtil, '.', @SnflIntrnStage, ''';'))
     , (@ObjectId,        'BEGIN')
     , (@ObjectId, CONCAT('     data := (SELECT SCHEMA_NAME, TABLE_NAME FROM ', @DbNameTgt, '.', @SnflSchemaUtil, '.', @SnflImpCtrlTbl, ');'))
