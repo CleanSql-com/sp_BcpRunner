@@ -263,7 +263,7 @@ GO
       , @ExportAllTablesPerDB               BIT           = 0     /* Set @ExportAllTablesPerDB to = 1 ONLY if you want to ignore the @SchemaNames/@TableNames specified above and export ALL TABLES IN THE ENTIRE DB */
       , @ExportComputedCols                 BIT           = 0     /* assuming computed cols on Target are defined identically as on Source (saves space in .csv), change to 1 if you want to export/import them */
       , @ExportIdentityCols                 BIT           = 1
-      , @ExportColumnHeaders                BIT           = 0     /* set = 1 only if you want to see the Column Names in the csv files, not critical for Import to work */                                                                                              
+      , @ExportColumnHeaders                BIT           = 0     /* set = 1 only if you want to see the Column Names in the csv files or if your Target is SNOWFLAKE, not critical for Import into MSSQL to work */                                                                                              
                                                                   
 
       , @CreateXmlFormatFile                BIT           = 1
@@ -700,6 +700,12 @@ END;
 IF UPPER(@ImportTarget) = 'MSSQL' AND @InstanceNameTgt IS NULL
 BEGIN
     SET @ErrorMessage = 'Parameter @InstanceNameTgt is required when @ImportTarget is set (or left as default) to MSSQL'
+    GOTO ERROR
+END;
+
+IF UPPER(@ImportTarget) = 'SNOWFLAKE' AND COALESCE(@ExportColumnHeaders, 0) = 0
+BEGIN
+    SET @ErrorMessage = 'If your @ImportTarget is SNOWFLAKE then your csv files have to include Column Headers for INFER SCHEMA to work, set @ExportColumnHeaders = 1'
     GOTO ERROR
 END;
 
