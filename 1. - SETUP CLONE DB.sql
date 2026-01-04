@@ -68,6 +68,17 @@ FROM  DISK = N'C:\MSSQL\Backup\AdventureWorksDW2022_Clone.bak' WITH  FILE = 1
 ALTER DATABASE [AdventureWorksDW2022_Clone] SET MULTI_USER
 GO
 
+USE [master]
+ALTER DATABASE [AdventureWorks2025_Clone] SET SINGLE_USER WITH ROLLBACK IMMEDIATE
+RESTORE DATABASE [AdventureWorks2025_Clone] 
+FROM  DISK = N'C:\mssql\backup\AdventureWorks2022_Clone.bak' 
+WITH  FILE = 1,  
+MOVE N'AdventureWorks2019' TO N'C:\MSSQL\Data\AdventureWorks2025.mdf',  
+MOVE N'AdventureWorks2019_log' TO N'C:\MSSQL\Log\AdventureWorks2025.ldf',  
+NOUNLOAD,  REPLACE,  STATS = 1
+ALTER DATABASE [AdventureWorks2025_Clone] SET MULTI_USER
+GO
+
 USE [master];
 GO
 

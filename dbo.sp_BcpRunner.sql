@@ -248,8 +248,8 @@ GO
       , @OutputDirectoryPsXml               NVARCHAR(MAX)  /* directory where SQL will create a PowerShell/XmlFormat files; has to be visible to SQL Server */
       , @OutputDirectoryCsv                 NVARCHAR(MAX)  /* directory where PowerShell script will create csv/zip files; has to be visible to PowerShell scripts that will run bcp export/import */
       
-      , @SchemaNames                        NVARCHAR(MAX) 
-      , @TableNames                         NVARCHAR(MAX) 
+      , @SchemaNames                        NVARCHAR(MAX) = NULL
+      , @TableNames                         NVARCHAR(MAX) = NULL
       , @SchemaNamesExpt                    NVARCHAR(MAX) = NULL 
       , @TableNamesExpt                     NVARCHAR(MAX) = NULL 
       , @ColumnNamesExpt                    NVARCHAR(MAX) = NULL /* list here any Column Names that you do NOT want exported */
@@ -407,7 +407,7 @@ END;
 
 IF @ExportAllTablesPerDB = 1 AND (LEN(@SchemaNames) > 0 OR LEN(@TableNames) > 0)
 BEGIN
-    SET @ErrorMessage = N'If you want to truncate ALL tables per DB by using @ExportAllTablesPerDB = 1 then both @SchemaNames AND @TableNames must be empty.';
+    SET @ErrorMessage = N'If you want to export ALL tables per DB by using @ExportAllTablesPerDB = 1 then both @SchemaNames AND @TableNames must be empty.';
     GOTO ERROR
 END;
 

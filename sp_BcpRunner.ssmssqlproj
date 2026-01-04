@@ -31,21 +31,41 @@
           <ConnectionProtocol>NotSpecified</ConnectionProtocol>
           <ApplicationName>Microsoft SQL Server Management Studio - Query</ApplicationName>
         </ConnectionNode>
+        <ConnectionNode Name="Inst3.docker.internal,1433:sa">
+          <Created>2026-01-01T20:34:34.4754431+01:00</Created>
+          <Type>SQL</Type>
+          <Server>Inst3.docker.internal,1433</Server>
+          <UserName>sa</UserName>
+          <Authentication>SQL</Authentication>
+          <InitialDB />
+          <LoginTimeout>30</LoginTimeout>
+          <TrustServerCertificate>False</TrustServerCertificate>
+          <EncryptionOption>False</EncryptionOption>
+          <ExecutionTimeout>0</ExecutionTimeout>
+          <ConnectionProtocol>NotSpecified</ConnectionProtocol>
+          <ApplicationName>Microsoft SQL Server Management Studio - Query</ApplicationName>
+        </ConnectionNode>
       </Items>
     </LogicalFolder>
     <LogicalFolder Name="Queries" Type="0" Sorted="true">
       <Items>
         <FileNode Name="1. - SETUP CLONE DB.sql">
-          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:Inst1.docker.internal,1433:False:sa</AssociatedConnectionMoniker>
-          <AssociatedConnSrvName>Inst1.docker.internal,1433</AssociatedConnSrvName>
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:Inst3.docker.internal,1433:False:sa</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>Inst3.docker.internal,1433</AssociatedConnSrvName>
           <AssociatedConnUserName>sa</AssociatedConnUserName>
           <FullPath>1. - SETUP CLONE DB.sql</FullPath>
         </FileNode>
         <FileNode Name="2. - TestCases.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:Inst3.docker.internal,1433:False:sa</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>Inst3.docker.internal,1433</AssociatedConnSrvName>
+          <AssociatedConnUserName>sa</AssociatedConnUserName>
+          <FullPath>2. - TestCases.sql</FullPath>
+        </FileNode>
+        <FileNode Name="3. - DML_Changes.sql">
           <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:Inst2.docker.internal,1433:False:sa</AssociatedConnectionMoniker>
           <AssociatedConnSrvName>Inst2.docker.internal,1433</AssociatedConnSrvName>
           <AssociatedConnUserName>sa</AssociatedConnUserName>
-          <FullPath>2. - TestCases.sql</FullPath>
+          <FullPath>3. - DML_Changes.sql</FullPath>
         </FileNode>
         <FileNode Name="dbo.sp_BcpRunner.sql">
           <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:Inst1.docker.internal,1433:False:sa</AssociatedConnectionMoniker>
