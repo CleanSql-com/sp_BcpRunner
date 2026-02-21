@@ -45,6 +45,7 @@ ALTER PROCEDURE [dbo].[sp_BcpRunner]
 /*                       Added thousand-comma-formatting to Job-Result numbers of PowerShell output                     */
 /* 2025-10-25  1.02      Powershell adjustments that tolerate SQL 2022 bcp output changes                               */
 /*                       Support for Snowflake as Target Import Platform                                                */
+/* 2026-02-22  1.03      Added [#SqlCodePgToSnflEncMapping] to automatically set PowerShell/Snowflake encoding params   */
 /* -------------------------------------------------------------------------------------------------------------------- */
 /* ==================================================================================================================== */
 /* 
@@ -286,7 +287,7 @@ DECLARE
 /* ==================================================================================================================== */
 
   /* Internal parameters: */
-    @SpCurrentVersion      CHAR(5) = '1.02'
+    @SpCurrentVersion      CHAR(5) = '1.03'
   , @ObjectId              INT
   , @SchemaName            SYSNAME
   , @TableName             SYSNAME
@@ -321,6 +322,7 @@ DECLARE
   , @PwrShlBcpInAll        NVARCHAR(MAX)
   , @PwrShlBcpInFinal      NVARCHAR(MAX)
   , @crlf                  CHAR(2)       = CHAR(13) + CHAR(10)
+
   
   
   /* Snowflake import variables: */
@@ -334,6 +336,11 @@ DECLARE
   , @newln                 CHAR(6)       = '''\n'''
   , @BackSlsh              CHAR(1)       = CHAR(92)
   , @FwdSlsh               CHAR(1)       = CHAR(47)
+  
+  /* SqlCodePage/Snowflake Format File Encoding parameters: */
+  , @SqlCodePage           SQL_VARIANT
+  , @PwrShlEnc             INT
+  , @SnflkEnc              VARCHAR(32)
 
 
   /* Error handling varaibles: */
@@ -925,7 +932,47 @@ CREATE TABLE [#BulkInsertFormatFile]
 DROP TABLE IF EXISTS [#ExceptionList];
 CREATE TABLE [#ExceptionList] ([SchemaNameExpt] SYSNAME NOT NULL, [TableNameExpt] SYSNAME NOT NULL);
 
+DROP TABLE IF EXISTS [#SqlCodePgToSnflEncMapping];
+CREATE TABLE [#SqlCodePgToSnflEncMapping]
+(
+	[SqlCodePage] SQL_VARIANT	NOT NULL PRIMARY KEY CLUSTERED
+  , [PwrShlEnc]   INT			NOT NULL
+  , [SnflkEnc]	  VARCHAR(32)	NOT NULL
+  , [RegionLang]  VARCHAR(128)	NOT NULL
+)
+
+INSERT INTO [#SqlCodePgToSnflEncMapping]
+(
+  [SqlCodePage] 
+, [PwrShlEnc] 
+, [SnflkEnc]	  
+, [RegionLang]  
+)
+VALUES
+  ( 0		, 1252	  , 'WINDOWS1252'	  , 'System Default (usually Western)')
+, ( 437		, 437	  , 'CP437'			  , 'US-ASCII (Original OEM)')
+, ( 850		, 850	  , 'CP850'			  , 'Western Europe (OEM)')
+, ( 874		, 874	  , 'ISO-8859-11'	  , 'Thai')
+, ( 932		, 932	  , 'SJIS'			  , 'Japanese (Shift-JIS)')
+, ( 936		, 936	  , 'GB18030'		  , 'Chinese Simplified')
+, ( 949		, 949	  , 'UHC'			  , 'Korean')
+, ( 950		, 950	  , 'BIG5'			  , 'Chinese Traditional')
+, ( 1250	, 1250	  , 'WINDOWS1250'	  , 'Central Europe')
+, ( 1251	, 1251	  , 'WINDOWS1251'	  , 'Cyrillic')
+, ( 1252	, 1252	  , 'WINDOWS1252'	  , 'Western Europe (Latin 1)')
+, ( 1253	, 1253	  , 'WINDOWS1253'	  , 'Greek')
+, ( 1254	, 1254	  , 'WINDOWS1254'	  , 'Turkish')
+, ( 1255	, 1255	  , 'WINDOWS1255'	  , 'Hebrew')
+, ( 1256	, 1256	  , 'WINDOWS1256'	  , 'Arabic')
+, ( 1257	, 1257	  , 'WINDOWS1257'	  , 'Baltic')
+, ( 1258	, 1258	  , 'WINDOWS1258'	  , 'Vietnamese')
+, ( 65001	, 65001	  , 'UTF8'			  , 'Unicode (UTF-8)')
+
+SELECT @SqlCodePage = COALESCE(COLLATIONPROPERTY(CAST(DATABASEPROPERTYEX(DB_NAME(), 'Collation') AS VARCHAR(128)), 'CodePage'), 0)
+SELECT @PwrShlEnc = [PwrShlEnc], @SnflkEnc = [SnflkEnc] FROM [#SqlCodePgToSnflEncMapping] WHERE [SqlCodePage] = @SqlCodePage
+
 SELECT @DbCollation = [collation_name] FROM [master].[sys].[databases] WHERE [name] = DB_NAME(); -- <== to do: adjust to read from TgtDb
+
 
 /* ==================================================================================================================== */
 /* ----------------------------------------- COLLECTING METADATA: ----------------------------------------------------- */
@@ -1261,6 +1308,7 @@ BEGIN
     , (@ObjectId, CONCAT('     FIELD_DELIMITER = ''', @DelimBcpOutputField, ''''))
     , (@ObjectId, CONCAT('     RECORD_DELIMITER = ''', @DelimBcpOutputRow, '\r\n'''))
     , (@ObjectId,        '     NULL_IF = (''NULL'', ''null'')')
+    , (@ObjectId, CONCAT('     ENCODING = ''', @SnflkEnc, ''''))
     , (@ObjectId,        '     EMPTY_FIELD_AS_NULL = TRUE;')
     , (@ObjectId, '')
     
@@ -1470,12 +1518,10 @@ VALUES
 , (@ObjectId, '            Write-Warning "[$(Get-Date -Format HH:mm:ss)] File locked or inaccessible: $csvFile"')
 , (@ObjectId, '            continue')
 , (@ObjectId, '        }')
---, (@ObjectId, '        Write-Host "[$(Get-Date -Format HH:mm:ss)] Processing: $csvFile"')
 , (@ObjectId, '        try {')
---, (@ObjectId, '            Write-Host "[$(Get-Date -Format HH:mm:ss)] Writing new file: $csvFileWHdr"')
 , (@ObjectId, '            ')
-, (@ObjectId, '            $ExplicitEncoding = [System.Text.Encoding]::GetEncoding(1252) # try different value if running on non-Windows system')
-, (@ObjectId, '            # Stream write: first write the header')
+, (@ObjectId, CONCAT('            $ExplicitEncoding = [System.Text.Encoding]::GetEncoding(', @PwrShlEnc, ') # try different value if running on non-Windows system'))
+, (@ObjectId,        '            # Stream write: first write the header')
 , (@ObjectId, CONCAT('            Set-Content -Path $csvFileWHdr -Value ($headerColumns + ''', @DelimBcpOutputRow, ''')'))
 , (@ObjectId, '            ')
 , (@ObjectId, '            # Then append the rest of the CSV, line-by-line')

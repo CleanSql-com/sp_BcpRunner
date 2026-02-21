@@ -68,8 +68,8 @@
           <FullPath>3. - DML_Changes.sql</FullPath>
         </FileNode>
         <FileNode Name="dbo.sp_BcpRunner.sql">
-          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:Inst1.docker.internal,1433:False:sa</AssociatedConnectionMoniker>
-          <AssociatedConnSrvName>Inst1.docker.internal,1433</AssociatedConnSrvName>
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:Inst3.docker.internal,1433:False:sa</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>Inst3.docker.internal,1433</AssociatedConnSrvName>
           <AssociatedConnUserName>sa</AssociatedConnUserName>
           <FullPath>dbo.sp_BcpRunner.sql</FullPath>
         </FileNode>
