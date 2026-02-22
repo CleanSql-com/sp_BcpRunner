@@ -22,7 +22,7 @@ GO
 /*
 Example 1: 
 
-    Export and import all data from SQL Instance 'Inst1.docker.internal,1433':
+    Export all data from SQL Instance 'Inst1.docker.internal,1433':
         1. From Database AdventureWorks2022 Schemas: 'HumanResources, Production, Purchasing, Sales'
         2. Matching Table Name patterns: 'Product*, *Address, *Tax*, Employee*, Work*'
     Except for:
@@ -30,7 +30,7 @@ Example 1:
         2. Any Column Name 'LargePhoto'
         3. Any Column with data type xml
         4. Any Identity Columns
-    Into SQL Instance 'Inst2.docker.internal,1433' Database 'AdventureWorks2022_Clone'
+    Import into SQL Instance 'Inst2.docker.internal,1433' Database 'AdventureWorks2022_Clone'
     using SQL Authentication (Powershell will promt for User name and password)
     Columns inside all output csv files will be delimited with: '^|^'
     Rows inside all output csv files will be delimited with: '~~~' + newline 
@@ -86,14 +86,14 @@ EXEC [dbo].[sp_BcpRunner]
 /*
 Example 2: 
 
-    Export and import all data from Inst2 to Inst1:
+    Export all data from Inst2 to Inst1:
         1. From Database AdventureWorksDW2022 Schema: 'dbo'
         2. From All Tables
     Except for:
         1. Any Table Name beginning with 'Fact*' in Schema 'dbo'
         2. Any Column Name beginning with 'Arabic*'
 
-    Into SQL Instance 'Inst1' Database 'AdventureWorksDW2022_Clone'
+    Import into SQL Instance 'Inst1' Database 'AdventureWorksDW2022_Clone'
     using Trusted Windows Authentication (no promt for User name or password)
     Columns inside all output csv files will be delimited with: '^_^'
     Rows inside all output csv files will be delimited with: '~~~' + newline 
@@ -147,14 +147,14 @@ EXEC [dbo].[sp_BcpRunner]
 /*
 Example 3: 
 
-    Export and import all data from SQL Instance 'Inst2.docker.internal,1433':
+    Export all data from SQL Instance 'Inst2.docker.internal,1433':
     using SQL Authentication (Powershell will promt for User name and password)
         1. From Database AdventureWorks2022 Schema: 'Sales'
         2. Tables: 'SalesOrderHeader, SalesOrderDetail, SalesPerson'
     Except for:
         1. Any Columns with datatype 'uniqueidentifier'
         2. Any Identity Columns
-    Into SNOWFLAKE Instance where SnowflakeImport.sql will need to be executed to script out the import steps
+    Import into SNOWFLAKE Instance where SnowflakeImport.sql will need to be executed to script out the import steps
     Snowflake's target database is specified as 'AdventureWorks2022_Snow'
     Columns inside all output csv files will be delimited with: '^|^'
     Rows inside all output csv files will be delimited with: '~~~' + newline 
@@ -210,7 +210,7 @@ Example 4:
 
     Export and import the entire AdventureWorks2025 database from SQL Instance 'Inst3.docker.internal,1433'
     No Exceptions
-    Into SQL Instance 'Inst2.docker.internal,1433' Database 'AdventureWorks2025_Clone'
+    Import into SQL Instance 'Inst2.docker.internal,1433' Database 'AdventureWorks2025_Clone'
     using SQL Authentication (Powershell will promt for User name and password)
     Columns inside all output csv files will be delimited with: '^|^'
     Rows inside all output csv files will be delimited with: '~~~' + newline 
@@ -259,12 +259,12 @@ EXEC [dbo].[sp_BcpRunner]
 /*
 Example 5: 
 
-    Export and import from SQL Instance: 'Inst3.docker.internal,1433'
+    Export from SQL Instance: 'Inst3.docker.internal,1433'
                          , Database: AdventureWorks2025
                          , Schema: Production
                          , Tables: TransactionHistory, WorkOrder, BillOfMaterials;
     No Exceptions
-    Into SQL Instance 'Inst2.docker.internal,1433' Database 'AdventureWorks2025_Clone'
+    Import into SQL Instance 'Inst2.docker.internal,1433' Database 'AdventureWorks2025_Clone'
     using SQL Authentication (Powershell will promt for User name and password)
     Columns inside all output csv files will be delimited with: '^|^'
     Rows inside all output csv files will be delimited with: '~~~' + newline 
@@ -309,4 +309,79 @@ EXEC [dbo].[sp_BcpRunner]
                                  , @DelimBcpOutputRow       = @DelimBcpOutputRow
                                  , @ExportIdentityCols      = @ExportIdentityCols
                                  , @ExportColumnHeaders     = @ExportColumnHeaders;
+GO
+/*
+Example 6: 
+
+    Export from SQL Instance: 'Inst3.docker.internal,1433'
+                         , Database: AdventureWorksDW2025
+                         , Schema: dbo
+                         , Tables: DimProduct;
+    Except columns listed in @ColumnNamesExpt - because some column exceptions are defined as NON-NULL in source
+    an additinal parameter @AllowNotNullColumnsAsExceptions = 1 has to be specified
+
+    Import into SQL Instance 'Inst2.docker.internal,1433' Database 'AdventureWorks2025_Clone'
+    using SQL Authentication (Powershell will promt for User name and password)
+    Columns inside all output csv files will be delimited with: '^|^'
+    Rows inside all output csv files will be delimited with: '~~~' + newline 
+    
+    All PowerShell/XmlFormat files will be created by this SP in @OutputDirectoryPsXml (C:\MSSQL\Backup\BCP\ as visible by SQL Server)
+    All csv exports generated by running the Powershell Export in step 2 will land in @OutputDirectoryCsv 
+    (D:\DOCKER_SHARE\Windows\BackupCommon\BCP\ as visible by machine where PowerShell is run)
+    If PowerShell is to be run from a client other than SQL Server then for easiest management,
+    to make both the SP and PowerShell operate on the same directory map them together or use a common network share accessible to both
+*/
+
+USE [AdventureWorksDW2025]
+GO
+
+DECLARE
+
+  @InstanceNameSrc                    NVARCHAR(128)     = N'Inst3.docker.internal,1433'
+, @InstanceNameTgt                    NVARCHAR(128)     = N'Inst2.docker.internal,1433'
+, @SqlAuthentication                  BIT               = 1
+, @DbNameSrc                          SYSNAME           = N'AdventureWorksDW2025'
+, @DbNameTgt                          SYSNAME           = N'AdventureWorksDW2025_Clone'
+, @OutputDirectoryPsXml               NVARCHAR(MAX)     = N'C:\MSSQL\Backup\BCP\'
+, @OutputDirectoryCsv                 NVARCHAR(MAX)     = N'D:\DOCKER_SHARE\Windows\BackupCommon\BCP\'                                                        
+, @SchemaNames                        NVARCHAR(MAX)     = N'dbo'
+, @TableNames                         NVARCHAR(MAX)     = N'DimProduct'
+, @ColumnNamesExpt                    NVARCHAR(MAX)     = 'StandardCost 
+                                                         , FinishedGoodsFlag
+                                                         , Color
+                                                         , SafetyStockLevel
+                                                         , ReorderPoint
+                                                         , ListPrice
+                                                         , Size
+                                                         , SizeRange
+                                                         , Weight
+                                                         , DaysToManufacture
+                                                         , ProductLine
+                                                         , DealerPrice
+                                                         , Class
+                                                         , Style
+                                                         , ModelName
+                                                         , LargePhoto'
+, @DelimBcpOutputField                VARCHAR(3)        = '^|^'
+, @DelimBcpOutputRow                  VARCHAR(16)       = '~~~'
+, @ExportIdentityCols                 BIT               = 1
+, @ExportColumnHeaders                BIT               = 1
+, @AllowNotNullColumnsAsExceptions    BIT               = 1
+
+EXEC [dbo].[sp_BcpRunner]
+                                   @InstanceNameSrc                 = @InstanceNameSrc     
+                                 , @InstanceNameTgt                 = @InstanceNameTgt     
+                                 , @SqlAuthentication               = @SqlAuthentication    
+                                 , @DbNameSrc                       = @DbNameSrc           
+                                 , @DbNameTgt                       = @DbNameTgt           
+                                 , @OutputDirectoryPsXml            = @OutputDirectoryPsXml
+                                 , @OutputDirectoryCsv              = @OutputDirectoryCsv
+                                 , @SchemaNames                     = @SchemaNames         
+                                 , @TableNames                      = @TableNames
+                                 , @ColumnNamesExpt                 = @ColumnNamesExpt
+                                 , @DelimBcpOutputField             = @DelimBcpOutputField
+                                 , @DelimBcpOutputRow               = @DelimBcpOutputRow
+                                 , @ExportIdentityCols              = @ExportIdentityCols
+                                 , @ExportColumnHeaders             = @ExportColumnHeaders
+                                 , @AllowNotNullColumnsAsExceptions = @AllowNotNullColumnsAsExceptions
 GO

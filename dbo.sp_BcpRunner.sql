@@ -45,7 +45,8 @@ ALTER PROCEDURE [dbo].[sp_BcpRunner]
 /*                       Added thousand-comma-formatting to Job-Result numbers of PowerShell output                     */
 /* 2025-10-25  1.02      Powershell adjustments that tolerate SQL 2022 bcp output changes                               */
 /*                       Support for Snowflake as Target Import Platform                                                */
-/* 2026-02-22  1.03      Added [#SqlCodePgToSnflEncMapping] to automatically set PowerShell/Snowflake encoding params   */
+/* 2026-02-22  1.03      Added [#SqlCodePgToSnflEncMapping] to optionally set PowerShell/Snowflake encoding params      */
+/*                       hard-coding UTF-8 (65001) as default encoding of bcp output                                    */                      
 /* -------------------------------------------------------------------------------------------------------------------- */
 /* ==================================================================================================================== */
 /* 
@@ -932,6 +933,7 @@ CREATE TABLE [#BulkInsertFormatFile]
 DROP TABLE IF EXISTS [#ExceptionList];
 CREATE TABLE [#ExceptionList] ([SchemaNameExpt] SYSNAME NOT NULL, [TableNameExpt] SYSNAME NOT NULL);
 
+/*
 DROP TABLE IF EXISTS [#SqlCodePgToSnflEncMapping];
 CREATE TABLE [#SqlCodePgToSnflEncMapping]
 (
@@ -960,6 +962,7 @@ VALUES
 , ( 1250	, 1250	  , 'WINDOWS1250'	  , 'Central Europe')
 , ( 1251	, 1251	  , 'WINDOWS1251'	  , 'Cyrillic')
 , ( 1252	, 1252	  , 'WINDOWS1252'	  , 'Western Europe (Latin 1)')
+--, ( 1252	, 65001	  , 'UTF8'	          , 'Unicode (UTF-8)')
 , ( 1253	, 1253	  , 'WINDOWS1253'	  , 'Greek')
 , ( 1254	, 1254	  , 'WINDOWS1254'	  , 'Turkish')
 , ( 1255	, 1255	  , 'WINDOWS1255'	  , 'Hebrew')
@@ -970,6 +973,13 @@ VALUES
 
 SELECT @SqlCodePage = COALESCE(COLLATIONPROPERTY(CAST(DATABASEPROPERTYEX(DB_NAME(), 'Collation') AS VARCHAR(128)), 'CodePage'), 0)
 SELECT @PwrShlEnc = [PwrShlEnc], @SnflkEnc = [SnflkEnc] FROM [#SqlCodePgToSnflEncMapping] WHERE [SqlCodePage] = @SqlCodePage
+*/
+SELECT @PwrShlEnc = 65001, @SnflkEnc = 'UTF8' 
+/*
+I don't care what ANSI/Specific Code Pages db stores it with, we always translate to UTF-8 (65001) - a universal language of the internet 
+If you want to experiment with matching a Db CodePage to how bcp exports data and then how powershell prepends a header 
+and then finally how to import that to for example Snowflake feel free, uncomment above section and comment out the UTF-8 hard-coding
+*/
 
 SELECT @DbCollation = [collation_name] FROM [master].[sys].[databases] WHERE [name] = DB_NAME(); -- <== to do: adjust to read from TgtDb
 
@@ -1417,7 +1427,8 @@ VALUES
 , (@ObjectId,         '        $formatFile = Join-Path $outputDir ("FormatFile." + $table.TableName + ".xml")')
 , (@ObjectId,         '        $csvFile = Join-Path $outputDir ($table.TableName + ".csv")')
 , (@ObjectId, CONCAT( '        $args = @("`"$query`"", "queryout", "`"$csvFile`"", "-S", $server, ', 
-                     IIF(@SqlAuthentication = 1, ('"-U", $username, "-P", $password,'), '"-T",'), ' "-N", "-t", "', @DelimBcpOutputField, '", "-r", "', @DelimBcpOutputRow, '", "-f", "`"$formatFile`"")'))
+                     IIF(@SqlAuthentication = 1, '"-U", $username, "-P", $password,', ' "-T",'), 
+                     ' "-c", "-C", "', @PwrShlEnc, '", "-t", "', @DelimBcpOutputField, '", "-r", "', @DelimBcpOutputRow, '", "-f", "`"$formatFile`"")'))                     
 , (@ObjectId,         '        $output = & bcp.exe @args 2>&1 | Out-String')
 , (@ObjectId,         '        $endTime = Get-Date')
 , (@ObjectId,         '')
@@ -1504,6 +1515,7 @@ VALUES
 , (@ObjectId, '}')
 
 , (@ObjectId, '$Verbose = $false') /* needs to be parametrized in sql */
+
 , (@ObjectId, 'Write-Host "`n ========================================== Creating CSV Files With Headers ================================================= "')
 , (@ObjectId, 'foreach ($table in $tables) {')
 , (@ObjectId, '    if ($table.HeaderColumnNames -and $table.HeaderColumnNames.Trim() -ne '''') {')
@@ -1519,29 +1531,27 @@ VALUES
 , (@ObjectId, '            continue')
 , (@ObjectId, '        }')
 , (@ObjectId, '        try {')
+, (@ObjectId,  CONCAT('            $ExplicitEncoding = ', 
+               IIF(@PwrShlEnc = 65001, 'New-Object System.Text.UTF8Encoding($false)', CONCAT('[System.Text.Encoding]::GetEncoding(', @PwrShlEnc, ')'))))
 , (@ObjectId, '            ')
-, (@ObjectId, CONCAT('            $ExplicitEncoding = [System.Text.Encoding]::GetEncoding(', @PwrShlEnc, ') # try different value if running on non-Windows system'))
-, (@ObjectId,        '            # Stream write: first write the header')
-, (@ObjectId, CONCAT('            Set-Content -Path $csvFileWHdr -Value ($headerColumns + ''', @DelimBcpOutputRow, ''')'))
-, (@ObjectId, '            ')
-, (@ObjectId, '            # Then append the rest of the CSV, line-by-line')
-, (@ObjectId, '            $reader = [System.IO.StreamReader]::new($csvFile, $ExplicitEncoding)')
+, (@ObjectId, '            $writer = [System.IO.StreamWriter]::new($csvFileWHdr, $false, $ExplicitEncoding)')
 , (@ObjectId, '            try {')
-, (@ObjectId, '                $writer = [System.IO.StreamWriter]::new($csvFileWHdr, $true, $ExplicitEncoding)')
+, (@ObjectId, CONCAT('                $writer.WriteLine($headerColumns + ''', @DelimBcpOutputRow, ''')'))
+, (@ObjectId, '                ')
+, (@ObjectId, '                # Open the reader for the BCP data')
+, (@ObjectId, '                $reader = [System.IO.StreamReader]::new($csvFile, $ExplicitEncoding)')
 , (@ObjectId, '                try {')
 , (@ObjectId, '                    while (-not $reader.EndOfStream) {')
 , (@ObjectId, '                        $writer.WriteLine($reader.ReadLine())')
 , (@ObjectId, '                    }')
 , (@ObjectId, '                } finally {')
-, (@ObjectId, '                    $writer.Dispose()')
+, (@ObjectId, '                    $reader.Dispose()')
 , (@ObjectId, '                }')
 , (@ObjectId, '            } finally {')
-, (@ObjectId, '                $reader.Dispose()')
+, (@ObjectId, '                $writer.Dispose()')
 , (@ObjectId, '            }')
---, (@ObjectId, '            Write-Host "[$(Get-Date -Format HH:mm:ss)] [SUCCESS] Created: $csvFileWHdr"')
 , (@ObjectId, '        } catch {')
 , (@ObjectId, '            Write-Warning "[$(Get-Date -Format HH:mm:ss)] Failed creating $csvFileWHdr : $($_.Exception.Message)"')
-, (@ObjectId, '            continue')
 , (@ObjectId, '        }')
 , (@ObjectId, '    }')
 , (@ObjectId, '}')
@@ -1618,8 +1628,10 @@ BEGIN
     ,  (@ObjectId, '        $targetView = "$targetDb." + $table["ViewName"]')
     ,  (@ObjectId, '        $viewSql = $table["ViewDefinition"]')
     ,  (@ObjectId, '        $viewCreated = Execute-Sql -sql $viewSql -server $server -database $targetDb -username $username -password $password')
-    ,  (@ObjectId, '        if (-not $viewCreated) { return [pscustomobject]@{ Table = $table["TableName"]; RowsCopied = 0; Duration = "N/A"; Speed = "N/A"; StartTime = $startTime; EndTime = Get-Date; Error = "View creation failed for $targetView" } }')
-    ,  (@ObjectId, CONCAT('        $args = @($targetView, "in", "`"$csvFile`"", "-S", $server, "-q", "-E", ', IIF(@SqlAuthentication = 1, '"-U", $username, "-P", $password,', '"-T",'), IIF(@ExportColumnHeaders = 1, ' "-F", "2",', ''),' "-r", "', @DelimBcpOutputRow, '", "-f", "`"$formatFile`"")'))
+    ,  (@ObjectId, '        if (-not $viewCreated) { return [pscustomobject]@{ Table = $table["TableName"]; RowsCopied = 0; Duration = "N/A"; Speed = "N/A"; StartTime = $startTime; EndTime = Get-Date; Error = "View creation failed for $targetView" } }')  
+    ,  (@ObjectId, CONCAT('        $args = @($targetView, "in", "`"$csvFile`"", "-S", $server, ', 
+                     IIF(@SqlAuthentication = 1, '"-U", $username, "-P", $password, ', '"-T", '), '"-c", "-C", "', @PwrShlEnc, '", ','"-q", "-E", ', 
+                     IIF(@ExportColumnHeaders = 1, '"-F", "2", ', ''), '"-r", "', @DelimBcpOutputRow, '", "-f", "`"$formatFile`"")'))
     ,  (@ObjectId, '        $output = & bcp.exe @args 2>&1 | Out-String')
     ,  (@ObjectId, '        $endTime = Get-Date')
     ,  (@ObjectId, '        $rowsCopied = if ($output -match ''([0-9,]+)\s+rows copied'') { $matches[1] } else { $null }')
@@ -1800,7 +1812,7 @@ BEGIN
                    , IIF(LEAD([xfn].[Rn]) OVER (PARTITION BY NULL ORDER BY [xfn].[Rn]) IS NULL, CONCAT(@DelimBcpOutputRow, '\r\n'), @DelimBcpOutputField) /* if this is the last field place double quote after FieldDelimiter */
                    , '"'
                    , IIF([cl].[MaxLength] <> -1, CONCAT(' MAX_LENGTH="', [cl].[MaxLength], '"'), '')
-                   , IIF([xfn].[IsCharType] = 1, ' COLLATION="' + [cl].[CollationName] + '"', '')
+                   --, IIF([xfn].[IsCharType] = 1, ' COLLATION="' + [cl].[CollationName] + '"', '')
                    , '/>'
                    , CONCAT(' <!-- ', QUOTENAME([cl].[ColumnName]), ' ', [cl].[FmtXsiType], ' -->')
                  ) AS [LineOfCode]
